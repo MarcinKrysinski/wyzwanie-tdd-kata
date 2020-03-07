@@ -1,12 +1,14 @@
 package wyzwanie.tddkata;
 
-import java.util.Objects;
-import java.util.Scanner;
+import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
+
 
 public class Calculator {
 
+
+    private static final int UPPER_LIMIT = 1000;
 
     Integer add(String input) {
 
@@ -20,39 +22,59 @@ public class Calculator {
 
     }
 
-    private int calculateWithOutPattern(String input){
+    private int calculateWithOutPattern(String input) {
 
         if (!Calculator.isNumeric(input) && !input.contains(",")) {
             throw new RuntimeException("Delimiter [,] not found");
         } else if (input.length() == 1) {
             return stringToInt(input);
         } else {
-            return Stream.of(input.split(","))
-                    .filter(Calculator::isNumeric)
-                    .mapToInt(Integer::parseInt)
-//                    .limit(2)
-                    .sum();
+            return parseAndSumInput(input, ",");
         }
     }
 
-    private int calculateWithPattern(String input){
+    private int calculateWithPattern(String input) {
 
-        char delimeter = input.charAt(3);
-        String delmiterString = Character.toString(delimeter);
-        String substring = input.substring(7);
-        Pattern patternSubstring = Pattern.compile("^(-?.*"+delimeter+"){1,}-?.*$");
+        String delimiter = input.substring(3, input.indexOf("]"));
 
-        if (patternSubstring.matcher(substring).matches())
-        {
-            return Stream.of(substring.split(delmiterString))
-                    .filter(Calculator::isNumeric)
-                    .mapToInt(Integer::parseInt)
-                    .sum();
+        String substring = input.substring(input.indexOf("n") + 1);
+        Pattern patternSubstring = Pattern.compile("^(-?.*" + delimiter + "){1,}-?.*$");
+
+        if (patternSubstring.matcher(substring).matches()) {
+            return parseAndSumInput(substring, delimiter);
         }
-         throw new RuntimeException("Delimiter doesn't match");
+        throw new RuntimeException("Delimiter doesn't match");
     }
 
-    private boolean isPattern(String input){
+    private int parseAndSumInput(String input, String delimiter) {
+        List<String> inputList = Arrays.asList(input.split(delimiter));
+        int result = 0;
+
+        for (String s : inputList) {
+            if (isNumeric(s)) {
+                int value = Integer.parseInt(s);
+                if (value < 0) {
+                    throwNegativeNotAllowedWithMessage(inputList);
+                }
+                else {
+                    result += value <= UPPER_LIMIT ? value : 0;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private void throwNegativeNotAllowedWithMessage(List<String> inputList) {
+        inputList = inputList.stream()
+                .filter(s -> Integer.parseInt(s) < 0)
+                .collect(Collectors.toList());
+
+        String negativesToMessage = String.join(", ", inputList);
+        throw new NegativeNotAllowed(negativesToMessage);
+    }
+
+    private boolean isPattern(String input) {
         Pattern pattern = Pattern.compile("^//.*\\\\n.*$");
         return pattern.matcher(input).matches();
     }
@@ -69,19 +91,19 @@ public class Calculator {
         return true;
     }
 
-    private int sum(String numberOne, String numberTwo){
+    private int sum(String numberOne, String numberTwo) {
         return stringToInt(numberOne) + stringToInt(numberTwo);
     }
 
-    private int stringToInt(String input){
+    private int stringToInt(String input) {
         return Integer.parseInt(input);
     }
 
-    private boolean isEmpty(String input){
+    private boolean isEmpty(String input) {
         return input.isEmpty();
     }
 
-    private boolean isNullOrIsEmpty(String input){
+    private boolean isNullOrIsEmpty(String input) {
         return Objects.isNull(input) || isEmpty(input);
     }
 
